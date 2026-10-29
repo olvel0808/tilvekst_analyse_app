@@ -45,7 +45,7 @@ st.markdown("Last opp vekter (.xls frå Sauekontrollen ELLER .csv frå Tru-Test)
 
 st.sidebar.header("⚙️ Innstillingar og Data")
 
-uploader_vekter = st.sidebar.file_uploader("1. Last opp vekter (.xls, .xlsx, .csv)", type=["xls", "xlsx", "csv"])
+uploader_vekter = st.sidebar.file_uploader("1. Last opp vekter (.xls, .xlsx, .csv)", type=["xls", "xlsx", "csv", "CSV"])
 uploader_basis = st.sidebar.file_uploader("2. Last opp basisinfo (sau-besetning.xlsx)", type=["xls", "xlsx"])
 
 slider_elite_90 = st.sidebar.slider('Grense Livdyr (90d):', 15.0, 45.0, 30.0, 0.5)
@@ -105,12 +105,11 @@ For at appen skal kunne flette og analysere besetninga di, treng du to filer:
 
 if uploader_vekter is not None:
     try:
-        # Bruk .lower() for å takle .CSV frå mobilar
+        # Sjekk både små og store bokstaver for CSV
         if uploader_vekter.name.lower().endswith('.csv'):
             try:
                 df_vekter_raw = pd.read_csv(uploader_vekter, sep=None, engine='python')
             except Exception:
-                # Spol tilbake og prøv anna koding viss det feilar (typisk på mobil/tru-test)
                 uploader_vekter.seek(0)
                 try:
                     df_vekter_raw = pd.read_csv(uploader_vekter, sep=';', encoding='latin-1')
