@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.patches as patches
 
-st.set_page_config(page_title="Nedre Okland gard - Tilvekst og Slakteanalysatoren", layout="wide")
+st.set_page_config(page_title="Nedre Økland gard - Tilvekst og Slakteanalysatoren", layout="wide")
 
-st.title("Nedre Okland gard - Tilvekst og Slakteanalysatoren")
+st.title("Nedre Økland gard - Tilvekst og Slakteanalysatoren")
 st.markdown("Last opp dine Excel-filer fra Sauekontrollen direkte i sidemenyen til venstre for å starte analysen.")
 
 st.sidebar.header("Innstillinger og Data")
@@ -20,7 +20,7 @@ slider_min_indeks = st.sidebar.slider('Minste avlsindeks:', 80, 150, 100, 1)
 slider_tiltak_56 = st.sidebar.slider('Kritisk grense (56d):', 5.0, 25.0, 15.0, 0.5)
 slider_tiltak_90 = st.sidebar.slider('Kritisk grense (90d):', 10.0, 30.0, 17.0, 0.5)
 
-sok_oremerke = st.sidebar.text_input('Sok pa oremerke:', '')
+sok_oremerke = st.sidebar.text_input('Søk på øremerke:', '')
 
 def clean_weight(val):
     if pd.isna(val):
@@ -68,25 +68,36 @@ else:
 har_data = not df_vekter_raw.empty
 
 def vis_bruksanvisning():
-    st.markdown('''### Hvordan komme i gang?
+    st.markdown('''### ℹ️ Hvordan komme i gang?
 For at appen skal kunne flette og analysere besetningen din, bruker du rapporter som eksporteres direkte fra Sauekontrollen:
 
 #### 1. Obligatorisk fil: Vektrapport (Tilvekst alle vekter)
 * **Filnavn:** Vanligvis `tilvekstAlleRapport.xls`
-* **Status:** **MA lastes opp** for at appen skal tegne tilvekstkurver og analysere tilvekst.
+* **Status:** **MÅ lastes opp** for at appen skal tegne tilvekstkurver og analysere tilvekst.
 
 #### 2. Valgfri tilleggsfil: Basisinfo / Besetningsliste
 * **Kilde:** Hentes fra Sauekontrollens besetningsbilde.
-* **Status:** Valgfri, men laser opp avanserte funksjoner.
-* **Innhold:** Ma inneholde kolonnene **Oremerke, Rase, Indeks, og Slaktedata** (slaktevekt og oppgjoerspris).
+* **Status:** Valgfri, men låser opp avanserte funksjoner.
+* **Innhold:** Må inneholde kolonnene **Øremerke, Rase, Indeks, og Slaktedata** (slaktevekt og oppgjørspris).
 
 ---
 
-### Hovedfunksjoner
-* **Potensielle Livdyr:** Viser aktive soyelam sortert etter 90-dagers estimert vekt og rase.
-* **Tiltak 56 dager & 90 dager:** Gir en rod flagg-liste over lam som ligger under kritiske vekstkurver.
-* **Effektivitetsanalyse:** Regner ut reell slakteprosent (levendevekt pa slaktedagen vs. reell slaktevekt).
-* **Tilvekstkurve:** Viser reelle malinger mot standardiserte kurver og markerer faresoner automatisk.''')
+### 🎯 Innstillinger for Tilskudd og Slaktekrav (Nortura, Fatland m.fl.)
+Appen har interaktive glidere i sidemenyen der du selv kan justere grensene for hva som defineres som "kritiske" vekter og "livdyr". Dette er spesielt nyttig for å planlegge slaktingen og sikre at du treffer de riktige vektklassene for best mulig oppgjør.
+
+* **Mål om 16,1 kg slaktevekt (Optimal pris):** For å oppnå 16,1 kg slakt, må lammet gjerne veie **37–40 kg levende** (ved 40-45% slakteprosent). 
+  * *Innstilling:* Sett **"Grense Livdyr (90d)"** høyt for å finne de dyrene som naturlig vokser raskt nok.
+* **Unngå strafftrekk (Sikre minst 13,1 kg):** For å være sikker på å bikke 13,1 kg i slakt, bør levendevekten passere minst **31–33 kg**.
+  * *Innstilling:* Sett **"Kritisk grense (90d)"** til f.eks. **25–28 kg**. Lam under dette vil rødflagges, slik at du kan sette inn tiltak.
+* **Tilpasning etter Rase:** Lettere raser (som Spælsau/Villsau) har lavere slaktevekter. Bruk "Filtrer på rase" og trekk gliderne nedover når du analyserer disse!
+
+---
+
+### 🚀 Hovedfunksjoner
+* **🌟 Potensielle Livdyr:** Viser aktive søyelam sortert etter 90-dagers estimert vekt og rase.
+* **⚠️ Tiltak 56 dager & 🚨 90 dager:** Gir en rød flagg-liste over lam som ligger under kritiske vekstkurver.
+* **📊 Effektivitetsanalyse:** Regner ut reell slakteprosent (levendevekt på slaktedagen vs. reell slaktevekt).
+* **📈 Tilvekstkurve:** Viser reelle målinger mot standardiserte kurver og markerer faresoner automatisk.''')
 
 if har_data:
     v_cols = df_vekter_raw.columns
@@ -205,7 +216,7 @@ if har_data:
         long_data_reell = pd.DataFrame(reelle_registreringer)
 
         unike_raser = ['Alle raser'] + sorted([r for r in hmi_data['Rase'].dropna().unique() if r != 'nan'])
-        velg_rase = st.sidebar.selectbox('Filtrer pa rase:', unike_raser)
+        velg_rase = st.sidebar.selectbox('Filtrer på rase:', unike_raser)
 
         temp_df = hmi_data.copy()
         if velg_rase != 'Alle raser':
@@ -222,13 +233,13 @@ if har_data:
         tiltak_90 = temp_df[temp_df['Estimert vekt 90 dager'] < slider_tiltak_90].sort_values('Estimert vekt 90 dager')
 
         tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-            "Potensielle Livdyr",
-            "Tiltak 56 dager",
-            "Tiltak 90 dager",
-            "Effektivitetsanalyse",
-            "Tilvekst (Reell)",
-            "Tilvekst (Estimert)",
-            "Bruksanvisning & Info"
+            "🌟 Potensielle Livdyr",
+            "⚠️ Tiltak 56 dager",
+            "🚨 Tiltak 90 dager",
+            "📊 Effektivitetsanalyse",
+            "📈 Tilvekst (Reell)",
+            "📈 Tilvekst (Estimert)",
+            "ℹ️ Bruksanvisning & Info"
         ])
 
         def fargelegg_og_vis(df):
@@ -317,6 +328,6 @@ if har_data:
         with tab7:
             vis_bruksanvisning()
     else:
-        st.warning("Finner ikke oremerkings-id i den opplastede vektfilen.")
+        st.warning("Finner ikke øremerkings-id i den opplastede vektfilen.")
 else:
     vis_bruksanvisning()
