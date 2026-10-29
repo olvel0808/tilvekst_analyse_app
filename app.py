@@ -83,11 +83,11 @@ For at appen skal kunne flette og analysere besetninga di, brukar du rapportar s
 ---
 
 ### 🧠 Lesley Stubbings' Filosofi: Tiltak til rett tid!
-Denne appen er bygd rundt tankegangen til den anerkjende britiske saueeksperten **Lesley Stubbings**. Heilt sentralt står prinsippet om å fange opp utfordringar *før* det er for seint. 
+Denne appen er bygd rundt tankegangen til den anerkjende britiske saueeksperten **Lesley Stubbings**. Heilt sentralt står prinsippet om å fange opp utfordringar *før* det er for seint.
 
 * **Vekta ved 56 dagar (8 veker):** Dette er eit magisk tidspunkt! Fram til no har lammet i stor grad levd på mjølk frå søya. Å vege no fortel oss direkte kor god mjølkeevne søya har, og gir eit tidleg varsel dersom lamma veks for sakte. Har dei det tøft no, må tiltak setjast inn umiddelbart (t.d. betre beite, ormekur eller støttefôring). Venter ein til hausten, er slaget ofte tapt.
 * **Vekta ved 90 dagar (Avvenning):** Målet for overgangen frå mjølk til reint beite. Her kan vi plukke ut dei beste livdyra, og identifisere lam som treng sluttfôring for å nå slaktekrava.
-* 🎬 *Sjå Lesley Stubbings forklare kvifor 8-vekersveging er så kritisk i videoane hennar: Søk etter **"Lesley Stubbings 8 week weight AHDB"** på YouTube.*
+* 🎬 *Sjå Lesley Stubbings forklare kvifor 8-vekersveging er så kritisk i videoen hennar på YouTube: [**"Optimizing Lamb Performance with Lesley Stubbings: Part 4"**](https://youtu.be/4StctKDWO2g?si=Fm5fbUrYW47QlaBl).*
 
 ---
 
