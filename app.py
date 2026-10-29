@@ -308,12 +308,13 @@ if har_data:
         tiltak_56 = temp_df[temp_df['Estimert vekt 56 dagar'] < slider_tiltak_56].sort_values('Estimert vekt 56 dagar')
         tiltak_90 = temp_df[temp_df['Estimert vekt 90 dagar'] < slider_tiltak_90].sort_values('Estimert vekt 90 dagar')
 
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
             "🌟 Potensielle Livdyr",
             "⚠️ Tiltak 56 dagar",
             "🚨 Tiltak 90 dagar",
             "📊 Effektivitet (Slakt)",
             "📈 Tilvekst (Reell)",
+            "📊 Tilvekst (Estimert)",
             "ℹ️ Bruksanvisning & Info"
         ])
 
@@ -366,6 +367,36 @@ if har_data:
                     ax.legend(loc='upper left')
                     st.pyplot(fig)
         with tab6:
+            st.subheader("Standardisert Tilvekstkurve (Estimerte Verdiar)")
+            est_recs = []
+            for _, r in temp_df.iterrows():
+                est_recs.append({'Øyremerke': r['Øyremerke'], 'Kjønn': r['Kjønn'], 'Alder': 56, 'Vekt': r['Estimert vekt 56 dagar']})
+                est_recs.append({'Øyremerke': r['Øyremerke'], 'Kjønn': r['Kjønn'], 'Alder': 90, 'Vekt': r['Estimert vekt 90 dagar']})
+            est_df = pd.DataFrame(est_recs)
+
+            if not est_df.empty:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                sns.scatterplot(data=est_df, x='Alder', y='Vekt', hue='Kjønn', alpha=0.7, s=60, ax=ax)
+                ax.axvline(x=56, color='gray', linestyle=':')
+                ax.axvline(x=90, color='gray', linestyle=':')
+
+                x_vals_est = np.array([0, 105])
+                ax.plot(x_vals_est, snitt_fvekt_beregnet + 0.300 * x_vals_est, color='green', linestyle='--', alpha=0.8, label='300 g/dag')
+                grense_tilvekst_dgl_90 = (slider_tiltak_90 - snitt_fvekt_beregnet) / 90.0
+                ax.plot(x_vals_est, snitt_fvekt_beregnet + grense_tilvekst_dgl_90 * x_vals_est, color='red', linestyle='--', alpha=0.8, label='Kritisk grense')
+
+                rect_56 = patches.Rectangle((53, 0), 6, slider_tiltak_56, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15)
+                rect_90 = patches.Rectangle((87, 0), 6, slider_tiltak_90, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15, label='Kritisk sone')
+                ax.add_patch(rect_56)
+                ax.add_patch(rect_90)
+
+                ax.set_xlabel('Alder (dagar)')
+                ax.set_ylabel('Vekt (kg)')
+                ax.grid(True, linestyle=':', alpha=0.6)
+                ax.legend(loc='upper left')
+                st.pyplot(fig)
+
+        with tab7:
             vis_bruksanvisning()
     else:
         st.warning("Fann ingen felles data. Sjekk at øyremerka stemmer overeins i vekter og basisinfo.")
