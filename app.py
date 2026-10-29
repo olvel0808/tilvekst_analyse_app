@@ -321,7 +321,22 @@ if har_data:
             if df.empty:
                 st.info("Fann ingen dyr med gjeldande filter.")
                 return
-            st.dataframe(df.style.format({'Slaktevekt (kg)': '{:.1f}', 'Nettopris (kr)': '{:.0f}', 'Slakteprosent (%)': '{:.1f} %'}))
+            
+            format_dict = {
+                'Slaktevekt (kg)': '{:.1f}', 
+                'Nettopris (kr)': '{:.0f}', 
+                'Slakteprosent (%)': '{:.1f} %',
+                'Estimert vekt 56 dagar': '{:.1f}',
+                'Estimert vekt 90 dagar': '{:.1f}',
+                'Est. levandevekt slakt (kg)': '{:.1f}',
+                'Indeks': '{:.0f}'
+            }
+            
+            # Bruk kun dei formata der kolonnane faktisk eksisterer i tabellen
+            current_format = {k: v for k, v in format_dict.items() if k in df.columns}
+            
+            # Vis tabell, na_rep="" gjer at 'nan' (tomme data) blir blankt i staden for stygt
+            st.dataframe(df.style.format(current_format, na_rep=""))
 
         with tab1:
             st.subheader(f"Potensielle Aktive Livdyr (Tal: {len(elite)})")
