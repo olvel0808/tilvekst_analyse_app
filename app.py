@@ -7,6 +7,46 @@ import matplotlib.patches as patches
 
 st.set_page_config(page_title="Nedre Økland gard - Tilvekst og Slakteanalysatoren", layout="wide")
 
+# PWA Konfigurasjon - Gjør appen installerbar på mobil
+def pwa_setup():
+    import streamlit.components.v1 as components
+    pwa_html = """
+    <script>
+        const doc = window.parent.document;
+        if (!doc.querySelector('link[rel="manifest"]')) {
+            const manifest = doc.createElement('link');
+            manifest.rel = 'manifest';
+            // Generer manifest som en Data URI for å unngå behov for statiske filer
+            manifest.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
+                "name": "Nedre Økland gard Analysator",
+                "short_name": "NØG Analyse",
+                "theme_color": "#4CAF50",
+                "background_color": "#ffffff",
+                "display": "standalone",
+                "orientation": "portrait",
+                "start_url": ".",
+                "icons": [
+                    {
+                        "src": "https://cdn-icons-png.flaticon.com/512/1970/1970044.png", // Et standard saue-ikon
+                        "sizes": "512x512",
+                        "type": "image/png"
+                    }
+                ]
+            }));
+            doc.head.appendChild(manifest);
+
+            // Meta-tags for optimal visning på iOS (Apple/iPhone)
+            const meta1 = doc.createElement('meta'); meta1.name = 'apple-mobile-web-app-capable'; meta1.content = 'yes'; doc.head.appendChild(meta1);
+            const meta2 = doc.createElement('meta'); meta2.name = 'apple-mobile-web-app-status-bar-style'; meta2.content = 'black-translucent'; doc.head.appendChild(meta2);
+            const meta3 = doc.createElement('meta'); meta3.name = 'theme-color'; meta3.content = '#4CAF50'; doc.head.appendChild(meta3);
+        }
+    </script>
+    """
+    components.html(pwa_html, height=0)
+
+# Kjør PWA-oppsettet i bakgrunnen
+pwa_setup()
+
 st.title("Nedre Økland gard - Tilvekst og Slakteanalysatoren")
 st.markdown("Last opp Excel-filene dine frå Sauekontrollen direkte i sidemenyen til venstre for å starte analysen.")
 
