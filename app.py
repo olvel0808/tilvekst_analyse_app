@@ -98,7 +98,7 @@ har_data = not df_vekter_raw.empty and not df_basis_raw.empty
 if har_data:
     # Klargjr Tru-Test data
     df_vekter_raw['EID_temp'] = df_vekter_raw['EID'].fillna(df_vekter_raw.get('VID', pd.Series(dtype=str)))
-        df_vekter_raw['yremerke_TruTest'] = df_vekter_raw['EID_temp'].apply(extract_eid)
+    df_vekter_raw['yremerke_TruTest'] = df_vekter_raw['EID_temp'].apply(extract_eid)
     df_vekter_raw['Weight'] = df_vekter_raw['Weight'].apply(clean_weight)
     df_vekter_raw['Veiedato'] = pd.to_datetime(df_vekter_raw['Date'], errors='coerce')
     
