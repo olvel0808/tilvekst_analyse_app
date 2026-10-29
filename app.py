@@ -105,14 +105,24 @@ For at appen skal kunne flette og analysere besetninga di, treng du to filer:
 
 if uploader_vekter is not None:
     try:
-        if uploader_vekter.name.endswith('.csv'):
-            df_vekter_raw = pd.read_csv(uploader_vekter, sep=None, engine='python')
+        # Bruk .lower() for å takle .CSV frå mobilar
+        if uploader_vekter.name.lower().endswith('.csv'):
+            try:
+                df_vekter_raw = pd.read_csv(uploader_vekter, sep=None, engine='python')
+            except Exception:
+                # Spol tilbake og prøv anna koding viss det feilar (typisk på mobil/tru-test)
+                uploader_vekter.seek(0)
+                try:
+                    df_vekter_raw = pd.read_csv(uploader_vekter, sep=';', encoding='latin-1')
+                except Exception:
+                    uploader_vekter.seek(0)
+                    df_vekter_raw = pd.read_csv(uploader_vekter, sep=',', encoding='utf-8', on_bad_lines='skip')
             kilde_type = 'trutest'
         else:
             df_vekter_raw = pd.read_excel(uploader_vekter)
             kilde_type = 'sauekontrollen'
     except Exception as e:
-        st.error(f"Feil ved lesing av vektfil: {e}")
+        st.error(f"Klarte ikkje å lese fila. Feilmelding: {e}")
         df_vekter_raw = pd.DataFrame()
 else:
     df_vekter_raw = pd.DataFrame()
