@@ -263,7 +263,19 @@ if up_vekter is not None:
 
                     if not p_df.empty:
                         sns.scatterplot(data=p_df, x='Alder', y='Vekt', hue='Kjoenn', alpha=0.7, ax=ax)
+                        
+                        # Lag kurver og skyggeområde
+                        x_vals = np.array([0, max(p_df['Alder']) if len(p_df) > 0 else 100])
+                        ax.plot(x_vals, 4.5 + 0.300 * x_vals, color='green', linestyle='--', alpha=0.8, label='300 g/dag')
+                        
+                        grense_tilvekst_dgl_90 = (grense_90 - 4.5) / 90.0
+                        ax.plot(x_vals, 4.5 + grense_tilvekst_dgl_90 * x_vals, color='red', linestyle='--', alpha=0.8, label=f'Kritisk grense ({round(grense_tilvekst_dgl_90*1000)} g/dag)')
+                        ax.fill_between(x_vals, 0, 4.5 + grense_tilvekst_dgl_90 * x_vals, color='red', alpha=0.08, label='Tiltakssone')
+                        
+                        ax.set_xlim(-5, max(p_df['Alder']) + 5)
+                        ax.set_ylim(0, max(p_df['Vekt']) + 5)
                         ax.grid(True, linestyle=':', alpha=0.6)
+                        ax.legend(loc='upper left')
                         st.pyplot(fig)
 
             with tab6:
@@ -277,13 +289,26 @@ if up_vekter is not None:
                 if est_recs:
                     est_df = pd.DataFrame(est_recs)
                     sns.scatterplot(data=est_df, x='Alder', y='Vekt', hue='Kjoenn', s=60, ax=ax)
+                    
+                    # Tegn referanselinjer for standardiserte punkter
+                    x_vals_est = np.array([0, 105])
+                    ax.plot(x_vals_est, 4.5 + 0.300 * x_vals_est, color='green', linestyle='--', alpha=0.8, label='300 g/dag')
+                    
+                    grense_tilvekst_dgl_90 = (grense_90 - 4.5) / 90.0
+                    ax.plot(x_vals_est, 4.5 + grense_tilvekst_dgl_90 * x_vals_est, color='red', linestyle='--', alpha=0.8, label='Kritisk grense')
+                    
                     ax.axvline(x=56, color='gray', linestyle=':')
                     ax.axvline(x=90, color='gray', linestyle=':')
+                    
                     rect_56 = patches.Rectangle((53, 0), 6, grense_56, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15)
-                    rect_90 = patches.Rectangle((87, 0), 6, grense_90, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15)
+                    rect_90 = patches.Rectangle((87, 0), 6, grense_90, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15, label='Tiltakssone')
                     ax.add_patch(rect_56)
                     ax.add_patch(rect_90)
+                    
+                    ax.set_xlim(0, 105)
+                    ax.set_ylim(0, max(est_df['Vekt']) + 5 if not est_df.empty else 50)
                     ax.grid(True, linestyle=':', alpha=0.6)
+                    ax.legend(loc='upper left')
                     st.pyplot(fig)
 
     except Exception as e:
