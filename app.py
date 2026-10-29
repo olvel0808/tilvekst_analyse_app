@@ -5,13 +5,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.patches as patches
 
-st.set_page_config(page_title="Interaktivt Flettingsdashbord", layout="wide")
+st.set_page_config(page_title="Nedre Okland gard - Tilvekst og Slakteanalysatoren", layout="wide")
 
-st.title("∞ Interaktivt Flettingsdashbord (Vekter + Slaktedata)")
+st.title("Nedre Okland gard - Tilvekst og Slakteanalysatoren")
 st.markdown("Last opp dine Excel-filer fra Sauekontrollen direkte i sidemenyen til venstre for å starte analysen.")
 
-# Sidepanel for innstillinger og opplasting
-st.sidebar.header("⚙️ Instillinger og Data")
+st.sidebar.header("Innstillinger og Data")
 
 uploader_vekter = st.sidebar.file_uploader("1. Last opp vekter (tilvekstAlleRapport.xls)", type=["xls", "xlsx"])
 uploader_basis = st.sidebar.file_uploader("2. Last opp basisinfo (sau-besetning.xlsx)", type=["xls", "xlsx"])
@@ -21,19 +20,25 @@ slider_min_indeks = st.sidebar.slider('Minste avlsindeks:', 80, 150, 100, 1)
 slider_tiltak_56 = st.sidebar.slider('Kritisk grense (56d):', 5.0, 25.0, 15.0, 0.5)
 slider_tiltak_90 = st.sidebar.slider('Kritisk grense (90d):', 10.0, 30.0, 17.0, 0.5)
 
-sok_oremerke = st.sidebar.text_input('Søk på øremerke:', '')
+sok_oremerke = st.sidebar.text_input('Sok pa oremerke:', '')
 
 def clean_weight(val):
-    if pd.isna(val): return np.nan
+    if pd.isna(val):
+        return np.nan
     if isinstance(val, str):
         val = val.replace(',', '.')
-    try: return float(val)
-    except: return np.nan
+    try:
+        return float(val)
+    except:
+        return np.nan
 
 def clean_id(val):
-    if pd.isna(val): return None
-    try: return int(float(str(val).strip()))
-    except: return str(val).strip()
+    if pd.isna(val):
+        return None
+    try:
+        return int(float(str(val).strip()))
+    except:
+        return str(val).strip()
 
 def finn_kolonne(columns, mulige_navn):
     for navn in mulige_navn:
@@ -60,9 +65,32 @@ if uploader_basis is not None:
 else:
     df_basis_raw = pd.DataFrame()
 
-if not df_vekter_raw.empty:
+har_data = not df_vekter_raw.empty
+
+def vis_bruksanvisning():
+    st.markdown('''### Hvordan komme i gang?
+For at appen skal kunne flette og analysere besetningen din, bruker du rapporter som eksporteres direkte fra Sauekontrollen:
+
+#### 1. Obligatorisk fil: Vektrapport (Tilvekst alle vekter)
+* **Filnavn:** Vanligvis `tilvekstAlleRapport.xls`
+* **Status:** **MA lastes opp** for at appen skal tegne tilvekstkurver og analysere tilvekst.
+
+#### 2. Valgfri tilleggsfil: Basisinfo / Besetningsliste
+* **Kilde:** Hentes fra Sauekontrollens besetningsbilde.
+* **Status:** Valgfri, men laser opp avanserte funksjoner.
+* **Innhold:** Ma inneholde kolonnene **Oremerke, Rase, Indeks, og Slaktedata** (slaktevekt og oppgjoerspris).
+
+---
+
+### Hovedfunksjoner
+* **Potensielle Livdyr:** Viser aktive soyelam sortert etter 90-dagers estimert vekt og rase.
+* **Tiltak 56 dager & 90 dager:** Gir en rod flagg-liste over lam som ligger under kritiske vekstkurver.
+* **Effektivitetsanalyse:** Regner ut reell slakteprosent (levendevekt pa slaktedagen vs. reell slaktevekt).
+* **Tilvekstkurve:** Viser reelle malinger mot standardiserte kurver og markerer faresoner automatisk.''')
+
+if har_data:
     v_cols = df_vekter_raw.columns
-    col_v_id = finn_kolonne(v_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr'])
+    col_v_id = finn_kolonne(v_cols, ['oremrk', 'oremerke', 'ind.nr', 'id', 'oremerke_nr', 'øremrk', 'øremerke'])
     col_v_kjoenn = finn_kolonne(v_cols, ['kjønn', 'kjoenn', 'k'])
     col_v_fvekt = finn_kolonne(v_cols, ['f.vekt', 'f-vekt', 'fødselsvekt', 'fødtvekt'])
     col_v_fodselsdato = finn_kolonne(v_cols, ['dato f.vekt', 'fødselsdato', 'fødtdato', 'født_dato'])
@@ -79,7 +107,7 @@ if not df_vekter_raw.empty:
         basis_dict = {}
         if not df_basis_raw.empty:
             b_cols = df_basis_raw.columns
-            col_b_id = finn_kolonne(b_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr'])
+            col_b_id = finn_kolonne(b_cols, ['oremrk', 'oremerke', 'ind.nr', 'id', 'oremerke_nr', 'øremrk', 'øremerke'])
             col_b_rase = finn_kolonne(b_cols, ['rase', 'rasetilhørighet', 'breed'])
             col_b_indeks = finn_kolonne(b_cols, ['indeks', 'avlsindeks', 'o.indeks', 'o-indeks'])
             col_b_kjoenn = finn_kolonne(b_cols, ['kjønn', 'kjoenn', 'k'])
@@ -125,7 +153,8 @@ if not df_vekter_raw.empty:
             nettopris = b_info.get('NettoPris', np.nan)
 
             fvekt = clean_weight(row[col_v_fvekt]) if col_v_fvekt else snitt_fvekt_beregnet
-            if pd.isna(fvekt): fvekt = snitt_fvekt_beregnet
+            if pd.isna(fvekt):
+                fvekt = snitt_fvekt_beregnet
 
             birth_date = pd.to_datetime(row[col_v_fodselsdato], dayfirst=True, format='mixed', errors='coerce') if col_v_fodselsdato else pd.NaT
             if pd.isna(birth_date): continue
@@ -176,7 +205,7 @@ if not df_vekter_raw.empty:
         long_data_reell = pd.DataFrame(reelle_registreringer)
 
         unike_raser = ['Alle raser'] + sorted([r for r in hmi_data['Rase'].dropna().unique() if r != 'nan'])
-        velg_rase = st.sidebar.selectbox('Filtrer på rase:', unike_raser)
+        velg_rase = st.sidebar.selectbox('Filtrer pa rase:', unike_raser)
 
         temp_df = hmi_data.copy()
         if velg_rase != 'Alle raser':
@@ -192,13 +221,14 @@ if not df_vekter_raw.empty:
         tiltak_56 = temp_df[temp_df['Estimert vekt 56 dager'] < slider_tiltak_56].sort_values('Estimert vekt 56 dager')
         tiltak_90 = temp_df[temp_df['Estimert vekt 90 dager'] < slider_tiltak_90].sort_values('Estimert vekt 90 dager')
 
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-            "🌟 Potensielle Livdyr",
-            "⚠️ Tiltak 56 dager",
-            "🚨 Tiltak 90 dager",
-            "📊 Effektivitetsanalyse",
-            "📈 Tilvekst (Reell)",
-            "📈 Tilvekst (Estimert)"
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+            "Potensielle Livdyr",
+            "Tiltak 56 dager",
+            "Tiltak 90 dager",
+            "Effektivitetsanalyse",
+            "Tilvekst (Reell)",
+            "Tilvekst (Estimert)",
+            "Bruksanvisning & Info"
         ])
 
         def fargelegg_og_vis(df):
@@ -217,11 +247,11 @@ if not df_vekter_raw.empty:
             fargelegg_og_vis(elite[['Oremerke', 'Kjoenn', 'Rase', 'Indeks', 'Daglig tilvekst (g)', 'Estimert vekt 56 dager', 'Estimert vekt 90 dager', 'Status']])
 
         with tab2:
-            st.subheader(f"Kritiske tiltakstiltak 56 dager (Antall: {len(tiltak_56)})")
+            st.subheader(f"Kritiske tiltak 56 dager (Antall: {len(tiltak_56)})")
             fargelegg_og_vis(tiltak_56[['Oremerke', 'Kjoenn', 'Rase', 'Estimert vekt 56 dager', 'Status']])
 
         with tab3:
-            st.subheader(f"Kritiske tiltakstiltak 90 dager (Antall: {len(tiltak_90)})")
+            st.subheader(f"Kritiske tiltak 90 dager (Antall: {len(tiltak_90)})")
             fargelegg_og_vis(tiltak_90[['Oremerke', 'Kjoenn', 'Rase', 'Estimert vekt 90 dager', 'Status']])
 
         with tab4:
@@ -235,22 +265,19 @@ if not df_vekter_raw.empty:
                 p_df = long_data_reell.copy()
                 if velg_rase != 'Alle raser': p_df = p_df[p_df['Rase'] == velg_rase]
                 if sok_oremerke: p_df = p_df[p_df['Oremerke'].astype(str).str.contains(sok_oremerke)]
-                
+
                 fig, ax = plt.subplots(figsize=(10, 5))
                 sns.scatterplot(data=p_df, x='Alder', y='Vekt', hue='Kjoenn', alpha=0.7, ax=ax)
-                
+
                 x_max = max(p_df['Alder']) if len(p_df) > 0 else 100
                 x_vals = np.array([0, x_max])
-                
-                # Standard vekstkurver
+
                 ax.plot(x_vals, snitt_fvekt_beregnet + 0.3 * x_vals, 'g--', label='300 g/dag')
                 grense_tilvekst_dgl = (slider_tiltak_90 - snitt_fvekt_beregnet) / 90.0
                 if grense_tilvekst_dgl < 0: grense_tilvekst_dgl = 0.100
                 ax.plot(x_vals, snitt_fvekt_beregnet + grense_tilvekst_dgl * x_vals, 'r--', label=f'Kritisk grense')
-                
-                # Rød skravering / tiltakssone
                 ax.fill_between(x_vals, 0, snitt_fvekt_beregnet + grense_tilvekst_dgl * x_vals, color='red', alpha=0.08, label='Tiltakssone')
-                
+
                 ax.set_xlabel('Alder (dager)')
                 ax.set_ylabel('Vekt (kg)')
                 ax.grid(True, linestyle=':', alpha=0.6)
@@ -264,32 +291,32 @@ if not df_vekter_raw.empty:
                 est_recs.append({'Oremerke': r['Oremerke'], 'Kjoenn': r['Kjoenn'], 'Alder': 56, 'Vekt': r['Estimert vekt 56 dager']})
                 est_recs.append({'Oremerke': r['Oremerke'], 'Kjoenn': r['Kjoenn'], 'Alder': 90, 'Vekt': r['Estimert vekt 90 dager']})
             est_df = pd.DataFrame(est_recs)
-            
+
             if not est_df.empty:
                 fig, ax = plt.subplots(figsize=(10, 5))
                 sns.scatterplot(data=est_df, x='Alder', y='Vekt', hue='Kjoenn', alpha=0.7, s=60, ax=ax)
                 ax.axvline(x=56, color='gray', linestyle=':')
                 ax.axvline(x=90, color='gray', linestyle=':')
-                
+
                 x_vals_est = np.array([0, 105])
-                # Grønn linje
                 ax.plot(x_vals_est, snitt_fvekt_beregnet + 0.300 * x_vals_est, color='green', linestyle='--', alpha=0.8, label='300 g/dag')
-                # Rød linje
                 grense_tilvekst_dgl_90 = (slider_tiltak_90 - snitt_fvekt_beregnet) / 90.0
                 ax.plot(x_vals_est, snitt_fvekt_beregnet + grense_tilvekst_dgl_90 * x_vals_est, color='red', linestyle='--', alpha=0.8, label='Kritisk grense')
-                
-                # Røde tiltakssoner (skravering)
+
                 rect_56 = patches.Rectangle((53, 0), 6, slider_tiltak_56, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15)
                 rect_90 = patches.Rectangle((87, 0), 6, slider_tiltak_90, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15, label='Kritisk sone')
                 ax.add_patch(rect_56)
                 ax.add_patch(rect_90)
-                
+
                 ax.set_xlabel('Alder (dager)')
                 ax.set_ylabel('Vekt (kg)')
                 ax.grid(True, linestyle=':', alpha=0.6)
                 ax.legend(loc='upper left')
                 st.pyplot(fig)
+
+        with tab7:
+            vis_bruksanvisning()
     else:
-        st.warning("Finner ikke øremerkings-id i den opplastede vektfilen.")
+        st.warning("Finner ikke oremerkings-id i den opplastede vektfilen.")
 else:
-    st.info("Vennligst last opp 'tilvekstAlleRapport.xls' og 'sau-besetning.xlsx' i sidepanelet til venstre for å starte.")
+    vis_bruksanvisning()
