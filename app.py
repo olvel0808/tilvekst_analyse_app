@@ -82,6 +82,27 @@ def finn_kolonne(columns, mulige_navn):
                 return col
     return None
 
+def vis_bruksanvisning():
+    st.markdown('''### ℹ️ Korleis kome i gang?
+For at appen skal kunne flette og analysere besetninga di, treng du to filer:
+
+#### 1. Obligatorisk fil: Vektrapport
+* **Sauekontrollen:** `tilvekstAlleRapport.xls`
+* **Tru-Test:** `.csv` fil frå vektstaven (Må innehalde EID eller VID, og Weight).
+
+#### 2. Obligatorisk tilleggsfil: Basisinfo / Besetningsliste
+* **Kjelde:** Hentast frå Sauekontrollen sitt besetningsbilete (`sau-besetning.xlsx`).
+* **Innhald:** Må innehalde kolonnane **Øyremerke, Rase, Indeks, Fødselsdato, og Slaktedata**.
+
+---
+
+### 🚀 Hovudfunksjonar
+* **🌟 Potensielle Livdyr:** Viser aktive søyelam sortert etter 90-dagars estimert vekt og rase.
+* **⚠️ Tiltak 56 dagar & 🚨 90 dagar:** Gir ei raud flagg-liste over lam som ligg under kritiske vekstkurver.
+* **📊 Effektivitetsanalyse:** Reknar ut reell slakteprosent (levandevekt på slaktedagen vs. reell slaktevekt).
+* **📈 Tilvekstkurve:** Viser reelle målingar mot standardiserte kurver og markerer faresoner automatisk.
+''')
+
 if uploader_vekter is not None:
     try:
         if uploader_vekter.name.endswith('.csv'):
@@ -110,7 +131,7 @@ har_data = not df_vekter_raw.empty and not df_basis_raw.empty
 if har_data:
     # --- 1. KLARGJØR BASISDATA ---
     b_cols = df_basis_raw.columns
-    col_b_id = finn_kolonne(b_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr'])
+    col_b_id = finn_kolonne(b_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr', 'oremrk', 'oremerke'])
     col_b_rase = finn_kolonne(b_cols, ['rase', 'rasetilhørighet', 'breed'])
     col_b_indeks = finn_kolonne(b_cols, ['indeks', 'avlsindeks', 'o.indeks', 'o-indeks'])
     col_b_kjoenn = finn_kolonne(b_cols, ['kjønn', 'kjoenn', 'k'])
@@ -118,7 +139,7 @@ if har_data:
     col_b_utdato = finn_kolonne(b_cols, ['utdato', 'utskrevet_dato', 'utmeldtdato'])
     col_b_slaktkg = finn_kolonne(b_cols, ['slaktkg', 'slaktevekt', 'slakt_vekt'])
     col_b_nettopris = finn_kolonne(b_cols, ['nettopris', 'pris', 'oppgjør'])
-    col_b_fvekt = finn_kolonne(b_cols, ['fødtvekt', 'fødselsvekt', 'f.vekt'])
+    col_b_fvekt = finn_kolonne(b_cols, ['fødtvekt', 'fødselsvekt', 'f.vekt', 'f-vekt'])
     col_b_fdato = finn_kolonne(b_cols, ['fødtdato', 'fødselsdato', 'dato f.vekt'])
 
     basis_dict = {}
@@ -131,7 +152,7 @@ if har_data:
                 status_str = "Aktiv"
                 if utkode_val and utkode_val != 'nan' and utkode_val != '':
                     status_str = f"{utkode_val} {utdato_val.strftime('%d.%m.%y')}" if pd.notna(utdato_val) else utkode_val
-                
+
                 basis_dict[bid] = {
                     'Rase': str(row_b[col_b_rase]).strip() if col_b_rase and pd.notna(row_b[col_b_rase]) else 'Ukjent',
                     'Indeks': clean_weight(row_b[col_b_indeks]) if col_b_indeks else np.nan,
@@ -147,7 +168,7 @@ if har_data:
     resultater = []
     reelle_registreringer = []
     snitt_fvekt_beregnet = 5.0
-    
+
     # --- 2. KLARGJØR VEKTDATA (Sauekontrollen eller Tru-Test) ---
     if kilde_type == 'trutest':
         if 'EID' in df_vekter_raw.columns:
@@ -157,33 +178,33 @@ if har_data:
         else:
             st.error("Tru-Test fila manglar EID og VID kolonner.")
             st.stop()
-            
+
         df_vekter_raw['Øyremerke_Clean'] = df_vekter_raw['EID_temp'].apply(extract_eid)
         df_vekter_raw['Vekt_Clean'] = df_vekter_raw['Weight'].apply(clean_weight) if 'Weight' in df_vekter_raw.columns else np.nan
         df_vekter_raw['Dato_Clean'] = pd.to_datetime(df_vekter_raw['Date'], errors='coerce') if 'Date' in df_vekter_raw.columns else pd.NaT
-        
+
         for _, row in df_vekter_raw.dropna(subset=['Øyremerke_Clean']).iterrows():
             lamb_id = row['Øyremerke_Clean']
             vekt = row['Vekt_Clean']
             veiedato = row['Dato_Clean']
             if pd.isna(vekt) or pd.isna(veiedato): continue
-            
+
             b_info = basis_dict.get(lamb_id)
             if not b_info: continue
-            
+
             birth_date = b_info['FødtDato']
             if pd.isna(birth_date): continue
             fvekt = b_info['Fødtvekt'] if pd.notna(b_info['Fødtvekt']) and b_info['Fødtvekt'] > 0 else 5.0
-            
+
             alder = (veiedato - birth_date).days
             if alder > 0:
                 reelle_registreringer.append({'Øyremerke': lamb_id, 'Kjønn': b_info['Kjønn'], 'Rase': b_info['Rase'], 'Alder': 0, 'Vekt': fvekt})
                 reelle_registreringer.append({'Øyremerke': lamb_id, 'Kjønn': b_info['Kjønn'], 'Rase': b_info['Rase'], 'Alder': alder, 'Vekt': vekt})
-                
+
                 daglig_tilvekst_kg = (vekt - fvekt) / alder
                 vekt_56 = fvekt + (daglig_tilvekst_kg * 56)
                 vekt_90 = fvekt + (daglig_tilvekst_kg * 90)
-                
+
                 res_idx = next((i for i, r in enumerate(resultater) if r['Øyremerke'] == lamb_id), None)
                 res_obj = {
                     'Øyremerke': lamb_id, 'Kjønn': b_info['Kjønn'], 'Rase': b_info['Rase'], 'Indeks': b_info['Indeks'],
@@ -198,32 +219,32 @@ if har_data:
 
     elif kilde_type == 'sauekontrollen':
         v_cols = df_vekter_raw.columns
-        col_v_id = finn_kolonne(v_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr'])
+        col_v_id = finn_kolonne(v_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr', 'oremrk', 'oremerke'])
         col_v_fvekt = finn_kolonne(v_cols, ['f.vekt', 'f-vekt', 'fødselsvekt', 'fødtvekt'])
         col_v_fdato = finn_kolonne(v_cols, ['dato f.vekt', 'fødselsdato', 'fødtdato', 'født_dato'])
-        
+
         for _, row in df_vekter_raw.iterrows():
             raw_id = row[col_v_id] if col_v_id else None
             lamb_id = clean_id(raw_id)
             if not lamb_id: continue
-            
+
             b_info = basis_dict.get(lamb_id, {})
             birth_date = pd.to_datetime(row[col_v_fdato], dayfirst=True, errors='coerce') if col_v_fdato else pd.NaT
             if pd.isna(birth_date): birth_date = b_info.get('FødtDato', pd.NaT)
             if pd.isna(birth_date): continue
-            
+
             fvekt = clean_weight(row[col_v_fvekt]) if col_v_fvekt else np.nan
             if pd.isna(fvekt): fvekt = b_info.get('Fødtvekt', 5.0)
-            
+
             kjoenn = b_info.get('Kjønn', 'Ukjent')
             rase = b_info.get('Rase', 'Ukjent')
-            
+
             reelle_registreringer.append({'Øyremerke': lamb_id, 'Kjønn': kjoenn, 'Rase': rase, 'Alder': 0, 'Vekt': fvekt})
             siste_vekt = np.nan
             alder_siste_vekt = 0
-            
+
             for i in range(1, 11):
-                dato_n = finn_kolonne(v_cols, [f'dato {i}', f'dato{i}', f'veiedato {i} भी', f'veiedato{i}'])
+                dato_n = finn_kolonne(v_cols, [f'dato {i}', f'dato{i}', f'veiedato {i}', f'veiedato{i}'])
                 vekt_n = finn_kolonne(v_cols, [f'vekt {i}', f'vekt{i}', f'veid {i}', f'veid{i}'])
                 if dato_n and pd.notna(row[dato_n]):
                     veiedato = pd.to_datetime(row[dato_n], dayfirst=True, errors='coerce')
@@ -235,7 +256,7 @@ if har_data:
                             if pd.isna(siste_vekt) or alder > alder_siste_vekt:
                                 siste_vekt = vekt
                                 alder_siste_vekt = alder
-            
+
             if alder_siste_vekt > 0:
                 daglig_tilvekst_kg = (siste_vekt - fvekt) / alder_siste_vekt
                 vekt_56 = fvekt + (daglig_tilvekst_kg * 56)
@@ -245,7 +266,7 @@ if har_data:
                 alder_slakt = (ut_dato - birth_date).days if pd.notna(ut_dato) else np.nan
                 vekt_slakt_est = fvekt + (daglig_tilvekst_kg * alder_slakt) if pd.notna(alder_slakt) else np.nan
                 slakteprosent = (slaktkg / vekt_slakt_est) * 100 if pd.notna(alder_slakt) and vekt_slakt_est > 0 else np.nan
-                
+
                 resultater.append({
                     'Øyremerke': lamb_id, 'Kjønn': kjoenn, 'Rase': rase, 'Indeks': b_info.get('Indeks', np.nan),
                     'Dagleg tilvekst (g)': round(daglig_tilvekst_kg * 1000), 'Estimert vekt 56 dagar': round(vekt_56, 1),
@@ -277,12 +298,13 @@ if har_data:
         tiltak_56 = temp_df[temp_df['Estimert vekt 56 dagar'] < slider_tiltak_56].sort_values('Estimert vekt 56 dagar')
         tiltak_90 = temp_df[temp_df['Estimert vekt 90 dagar'] < slider_tiltak_90].sort_values('Estimert vekt 90 dagar')
 
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "🌟 Potensielle Livdyr",
             "⚠️ Tiltak 56 dagar",
             "🚨 Tiltak 90 dagar",
             "📊 Effektivitet (Slakt)",
-            "📈 Tilvekst (Reell)"
+            "📈 Tilvekst (Reell)",
+            "ℹ️ Bruksanvisning & Info"
         ])
 
         def fargelegg_og_vis(df):
@@ -302,7 +324,7 @@ if har_data:
         with tab3:
             st.subheader(f"Kritiske tiltak 90 dagar (Tal: {len(tiltak_90)})")
             fargelegg_og_vis(tiltak_90[['Øyremerke', 'Kjønn', 'Rase', 'Estimert vekt 90 dagar', 'Status']])
-            
+
         with tab4:
             st.subheader("Effektivitetsanalyse (Slakt)")
             effekt_df = temp_df[temp_df['Slaktevekt (kg)'].notna() & (temp_df['Slaktevekt (kg)'] > 0)].copy()
@@ -333,7 +355,9 @@ if har_data:
                     ax.grid(True, linestyle=':', alpha=0.6)
                     ax.legend(loc='upper left')
                     st.pyplot(fig)
+        with tab6:
+            vis_bruksanvisning()
     else:
         st.warning("Fann ingen felles data. Sjekk at øyremerka stemmer overeins i vekter og basisinfo.")
 else:
-    st.info("📌 Velkomen! Last opp basisfil (.xlsx) og vektfil (.xls eller .csv) i menyen til venstre for å byrje analysen.")
+    vis_bruksanvisning()
