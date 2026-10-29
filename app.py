@@ -5,11 +5,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.patches as patches
 
-st.set_page_colaboratory = False
 st.set_page_config(page_title="Interaktivt Flettingsdashbord", layout="wide")
 
 st.title("∞ Interaktivt Flettingsdashbord (Vekter + Slaktedata)")
-st.markdown("Last opp dine Excel-filer fra Sauekontrollen for å analysere tilvekst, avlsindekser og slakteoppgjør.")
+st.markdown("Last opp dine Excel-filer fra Sauekontrollen direkte i sidemenyen til venstre for å starte analysen.")
 
 # Sidepanel for innstillinger og opplasting
 st.sidebar.header("⚙️ Instillinger og Data")
@@ -62,7 +61,6 @@ else:
     df_basis_raw = pd.DataFrame()
 
 if not df_vekter_raw.empty:
-    # Klargjør vekt-dataframe
     v_cols = df_vekter_raw.columns
     col_v_id = finn_kolonne(v_cols, ['øremrk', 'øremerke', 'ind.nr', 'id', 'øremerke_nr'])
     col_v_kjoenn = finn_kolonne(v_cols, ['kjønn', 'kjoenn', 'k'])
@@ -177,11 +175,9 @@ if not df_vekter_raw.empty:
         hmi_data = pd.DataFrame(resultater)
         long_data_reell = pd.DataFrame(reelle_registreringer)
 
-        # Rasefilter-valg i sidepanel
         unike_raser = ['Alle raser'] + sorted([r for r in hmi_data['Rase'].dropna().unique() if r != 'nan'])
         velg_rase = st.sidebar.selectbox('Filtrer på rase:', unike_raser)
 
-        # Filtrering
         temp_df = hmi_data.copy()
         if velg_rase != 'Alle raser':
             temp_df = temp_df[temp_df['Rase'] == velg_rase]
@@ -196,18 +192,17 @@ if not df_vekter_raw.empty:
         tiltak_56 = temp_df[temp_df['Estimert vekt 56 dager'] < slider_tiltak_56].sort_values('Estimert vekt 56 dager')
         tiltak_90 = temp_df[temp_df['Estimert vekt 90 dager'] < slider_tiltak_90].sort_values('Estimert vekt 90 dager')
 
-        # Opprett faner
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-            "🌟 Potensielle Livdyr", 
-            "⚠️ Tiltak 56 dager", 
-            "🚨 Tiltak 90 dager", 
-            "📊 Effektivitetsanalyse", 
+            "🌟 Potensielle Livdyr",
+            "⚠️ Tiltak 56 dager",
+            "🚨 Tiltak 90 dager",
+            "📊 Effektivitetsanalyse",
             "📈 Tilvekst (Reell)",
             "📈 Tilvekst (Estimert)"
         ])
 
         def fargelegg_og_vis(df):
-            if df.empty: 
+            if df.empty:
                 st.info("Ingen dyr funnet med gjeldende filter.")
                 return
             df_style = df.copy()
@@ -239,8 +234,27 @@ if not df_vekter_raw.empty:
             if not long_data_reell.empty:
                 p_df = long_data_reell.copy()
                 if velg_rase != 'Alle raser': p_df = p_df[p_df['Rase'] == velg_rase]
+                if sok_oremerke: p_df = p_df[p_df['Oremerke'].astype(str).str.contains(sok_oremerke)]
+                
                 fig, ax = plt.subplots(figsize=(10, 5))
                 sns.scatterplot(data=p_df, x='Alder', y='Vekt', hue='Kjoenn', alpha=0.7, ax=ax)
+                
+                x_max = max(p_df['Alder']) if len(p_df) > 0 else 100
+                x_vals = np.array([0, x_max])
+                
+                # Standard vekstkurver
+                ax.plot(x_vals, snitt_fvekt_beregnet + 0.3 * x_vals, 'g--', label='300 g/dag')
+                grense_tilvekst_dgl = (slider_tiltak_90 - snitt_fvekt_beregnet) / 90.0
+                if grense_tilvekst_dgl < 0: grense_tilvekst_dgl = 0.100
+                ax.plot(x_vals, snitt_fvekt_beregnet + grense_tilvekst_dgl * x_vals, 'r--', label=f'Kritisk grense')
+                
+                # Rød skravering / tiltakssone
+                ax.fill_between(x_vals, 0, snitt_fvekt_beregnet + grense_tilvekst_dgl * x_vals, color='red', alpha=0.08, label='Tiltakssone')
+                
+                ax.set_xlabel('Alder (dager)')
+                ax.set_ylabel('Vekt (kg)')
+                ax.grid(True, linestyle=':', alpha=0.6)
+                ax.legend(loc='upper left')
                 st.pyplot(fig)
 
         with tab6:
@@ -250,10 +264,32 @@ if not df_vekter_raw.empty:
                 est_recs.append({'Oremerke': r['Oremerke'], 'Kjoenn': r['Kjoenn'], 'Alder': 56, 'Vekt': r['Estimert vekt 56 dager']})
                 est_recs.append({'Oremerke': r['Oremerke'], 'Kjoenn': r['Kjoenn'], 'Alder': 90, 'Vekt': r['Estimert vekt 90 dager']})
             est_df = pd.DataFrame(est_recs)
-            fig, ax = plt.subplots(figsize=(10, 5))
-            sns.scatterplot(data=est_df, x='Alder', y='Vekt', hue='Kjoenn', alpha=0.7, ax=ax)
-            st.pyplot(fig)
+            
+            if not est_df.empty:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                sns.scatterplot(data=est_df, x='Alder', y='Vekt', hue='Kjoenn', alpha=0.7, s=60, ax=ax)
+                ax.axvline(x=56, color='gray', linestyle=':')
+                ax.axvline(x=90, color='gray', linestyle=':')
+                
+                x_vals_est = np.array([0, 105])
+                # Grønn linje
+                ax.plot(x_vals_est, snitt_fvekt_beregnet + 0.300 * x_vals_est, color='green', linestyle='--', alpha=0.8, label='300 g/dag')
+                # Rød linje
+                grense_tilvekst_dgl_90 = (slider_tiltak_90 - snitt_fvekt_beregnet) / 90.0
+                ax.plot(x_vals_est, snitt_fvekt_beregnet + grense_tilvekst_dgl_90 * x_vals_est, color='red', linestyle='--', alpha=0.8, label='Kritisk grense')
+                
+                # Røde tiltakssoner (skravering)
+                rect_56 = patches.Rectangle((53, 0), 6, slider_tiltak_56, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15)
+                rect_90 = patches.Rectangle((87, 0), 6, slider_tiltak_90, linewidth=1, edgecolor='red', facecolor='red', alpha=0.15, label='Kritisk sone')
+                ax.add_patch(rect_56)
+                ax.add_patch(rect_90)
+                
+                ax.set_xlabel('Alder (dager)')
+                ax.set_ylabel('Vekt (kg)')
+                ax.grid(True, linestyle=':', alpha=0.6)
+                ax.legend(loc='upper left')
+                st.pyplot(fig)
     else:
         st.warning("Finner ikke øremerkings-id i den opplastede vektfilen.")
 else:
-    st.info("Vennligst last opp 'tilvekstAlleRapport.xls' i sidepanelet for å starte.")
+    st.info("Vennligst last opp 'tilvekstAlleRapport.xls' og 'sau-besetning.xlsx' i sidepanelet til venstre for å starte.")
